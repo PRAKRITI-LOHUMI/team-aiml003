@@ -1,0 +1,15 @@
+fastapi==0.95.1
+uvicorn[standard]==0.22.0
+python-dotenv==1.0.0
+python-openstackclient==6.2.0
+python-novaclient==18.1.0
+python-neutronclient==9.0.0
+python-cinderclient==9.3.0
+pydantic==1.10.7
+sqlalchemy==1.4.46
+openai==0.27.8
+pytest==7.3.1
+httpx==0.24.0
+transformers==4.35.0
+torch==2.0.1
+accelerate==0.23.0

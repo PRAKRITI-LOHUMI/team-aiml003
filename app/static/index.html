@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cloud Operations Agent</title>
+    <script src="https://unpkg.com/vue@3"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            width: 80%;
+            max-width: 800px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        h1 {
+            text-align: center;
+            padding: 20px;
+            margin: 0;
+            background-color: #4285f4;
+            color: white;
+        }
+        
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 70vh;
+        }
+        
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        .user, .system {
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            border-radius: 5px;
+            max-width: 80%;
+        }
+        
+        .user {
+            align-self: flex-end;
+            background-color: #4285f4;
+            color: white;
+            margin-left: auto;
+        }
+        
+        .system {
+            align-self: flex-start;
+            background-color: #f1f1f1;
+            color: #333;
+        }
+        
+        .input-container {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid #ddd;
+        }
+        
+        input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .confirmation {
+            display: flex;
+            justify-content: center;
+            padding: 15px;
+            border-top: 1px solid #ddd;
+        }
+        
+        .confirmation button {
+            margin: 0 10px;
+        }
+        
+        .confirmation button:first-child {
+            background-color: #4caf50;
+        }
+        
+        .confirmation button:last-child {
+            background-color: #f44336;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Cloud Operations Assistant</h1>
+        <div id="app">
+            <div class="chat-container">
+                <div class="messages">
+                    <div v-for="message in messages" :class="message.type">
+                        {{ message.text }}
+                    </div>
+                </div>
+                <div v-if="awaitingConfirmation" class="confirmation">
+                    <button @click="confirm(true)">Yes</button>
+                    <button @click="confirm(false)">No</button>
+                </div>
+                <div v-else class="input-container">
+                    <input v-model="userInput" @keyup.enter="sendMessage" placeholder="Type your request...">
+                    <button @click="sendMessage">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const app = Vue.createApp({
+            data() {
+                return {
+                    userInput: '',
+                    messages: [
+                        {type: 'system', text: 'Hello! How can I help you with your cloud operations today?'}
+                    ],
+                    awaitingConfirmation: false,
+                    pendingOperation: null,
+                    pendingParameters: null
+                }
+            },
+            methods: {
+                sendMessage() {
+                    if (!this.userInput.trim()) return;
+                    
+                    this.messages.push({type: 'user', text: this.userInput});
+                    
+                    axios.post('/api/chat', {
+                        message: this.userInput
+                    })
+                    .then(response => {
+                        this.messages.push({type: 'system', text: response.data.message});
+                        
+                        if (response.data.requires_confirmation) {
+                            this.awaitingConfirmation = true;
+                            this.pendingOperation = response.data.operation;
+                            this.pendingParameters = response.data.parameters;
+                        }
+                    })
+                    .catch(error => {
+                        this.messages.push({type: 'system', text: 'Sorry, there was an error processing your request.'});
+                        console.error(error);
+                    });
+                    
+                    this.userInput = '';
+                },
+                confirm(confirmed) {
+                    axios.post('/api/confirm', {
+                        operation: this.pendingOperation,
+                        confirmed: confirmed,
+                        parameters: this.pendingParameters
+                    })
+                    .then(response => {
+                        this.messages.push({type: 'system', text: response.data.message});
+                        this.awaitingConfirmation = false;
+                    })
+                    .catch(error => {
+                        this.messages.push({type: 'system', text: 'Sorry, there was an error processing your confirmation.'});
+                        console.error(error);
+                    });
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
